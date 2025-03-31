@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Job Application Tracker</title>
+    <title>Job Application Tracker - Home</title>
     <link rel="stylesheet" href="styles.css">
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
 </head>
 <body>
     <div class="container">
@@ -54,39 +55,172 @@
                 <button id="logoutBtn" class="logout-btn">Logout</button>
             </div>
 
-            <form id="jobForm" class="job-form">
-                <div class="form-group">
-                    <label for="jobTitle">Job Title</label>
-                    <input type="text" id="jobTitle" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="companyName">Company Name</label>
-                    <input type="text" id="companyName" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="status">Application Status</label>
-                    <select id="status" required>
-                        <option value="Applied">Applied</option>
-                        <option value="Interviewing">Interviewing</option>
-                        <option value="Offered">Offered</option>
-                        <option value="Rejected">Rejected</option>
-                        <option value="Accepted">Accepted</option>
-                    </select>
-                </div>
-                
-                <button type="submit">Add Application</button>
-            </form>
+            <!-- Navigation Tabs -->
+            <div class="nav-tabs">
+                <button class="tab-btn active" data-tab="home">Home</button>
+                <button class="tab-btn" data-tab="applications">Applications</button>
+                <button class="tab-btn" data-tab="documents">Documents</button>
+            </div>
 
-            <div class="applications-container">
-                <h2>Your Applications</h2>
-                <div id="applicationsList" class="applications-list">
-                    <!-- Applications will be added here dynamically -->
+            <!-- Home Tab Content -->
+            <div id="homeTab" class="tab-content active">
+                <div class="applications-container">
+                    <div class="applications-header">
+                        <h2>All Applications</h2>
+                    </div>
+                    <div id="allApplicationsList" class="applications-list">
+                        <div class="no-applications">
+                            <p>No applications yet</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Applications Tab Content -->
+            <div id="applicationsTab" class="tab-content">
+                <div class="dashboard">
+                    <div class="dashboard-actions">
+                        <button id="addApplicationBtn" class="btn">Add New Application</button>
+                    </div>
+                </div>
+
+                <!-- Add Application Form (hidden by default) -->
+                <div id="applicationForm" class="job-form" style="display: none;">
+                    <h2>Add New Application</h2>
+                    <form id="jobForm">
+                        <div class="form-group">
+                            <label for="jobTitle">Job Title</label>
+                            <input type="text" id="jobTitle" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="companyName">Company Name</label>
+                            <input type="text" id="companyName" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="status">Application Status</label>
+                            <select id="status" required>
+                                <option value="Applied">Applied</option>
+                                <option value="Interviewing">Interviewing</option>
+                                <option value="Offered">Offered</option>
+                                <option value="Rejected">Rejected</option>
+                                <option value="Accepted">Accepted</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="deadline">Application Deadline</label>
+                            <input type="date" id="deadline" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="notes">Notes</label>
+                            <textarea id="notes" rows="4" placeholder="Add any notes about the application..."></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Cover Letters</label>
+                            <div id="coverLettersContainer">
+                                <div class="document-upload">
+                                    <input type="file" class="cover-letter-input" accept=".pdf,.doc,.docx">
+                                    <button type="button" class="btn-secondary" onclick="addCoverLetterInput()">Add Another Cover Letter</button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="submit">Add Application</button>
+                            <button type="button" class="cancel-btn" onclick="hideApplicationForm()">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Documents Tab Content -->
+            <div id="documentsTab" class="tab-content">
+                <div class="documents-container">
+                    <div class="documents-header">
+                        <h2>My Documents</h2>
+                        <button id="uploadDocumentBtn" class="btn">Upload New Document</button>
+                    </div>
+
+                    <div class="documents-grid">
+                        <div class="document-section">
+                            <h3>Resume</h3>
+                            <div id="resumeList" class="document-list">
+                                <div class="no-documents">
+                                    <p>No resume uploaded</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="document-section">
+                            <h3>Portfolio</h3>
+                            <div id="portfolioList" class="document-list">
+                                <div class="no-documents">
+                                    <p>No portfolio items uploaded</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="document-section">
+                            <h3>Cover Letters</h3>
+                            <div id="coverLetterList" class="document-list">
+                                <div class="no-documents">
+                                    <p>No cover letters uploaded</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Upload Document Form (hidden by default) -->
+                <div id="uploadDocumentForm" class="job-form" style="display: none;">
+                    <h2>Upload New Document</h2>
+                    <form id="documentForm">
+                        <div class="form-group">
+                            <label for="documentType">Document Type</label>
+                            <select id="documentType" required>
+                                <option value="resume">Resume</option>
+                                <option value="portfolio">Portfolio</option>
+                                <option value="coverLetter">Cover Letter</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="documentTitle">Document Title</label>
+                            <input type="text" id="documentTitle" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="documentFile">File</label>
+                            <input type="file" id="documentFile" required accept=".pdf,.doc,.docx,.txt">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="documentDescription">Description (optional)</label>
+                            <textarea id="documentDescription" rows="3"></textarea>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit">Upload Document</button>
+                            <button type="button" class="cancel-btn" onclick="hideUploadForm()">Cancel</button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
     </div>
-    <script src="script.js"></script>
+
+    <!-- Document Preview Modal -->
+    <div id="documentPreviewModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <div id="documentPreview"></div>
+        </div>
+    </div>
+
+    <script src="home.js"></script>
 </body>
 </html>

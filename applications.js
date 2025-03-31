@@ -14,14 +14,22 @@ const auth = firebase.auth();
 const db = firebase.firestore();
 
 // Get DOM elements
-const jobForm = document.getElementById('jobForm');
-const applicationsList = document.getElementById('applicationsList');
 const loginForm = document.getElementById('loginForm');
 const registerForm = document.getElementById('registerForm');
 const authForms = document.getElementById('authForms');
 const appContent = document.getElementById('appContent');
 const userEmail = document.getElementById('userEmail');
 const logoutBtn = document.getElementById('logoutBtn');
+const jobForm = document.getElementById('jobForm');
+const applicationForm = document.getElementById('applicationForm');
+const addApplicationBtn = document.getElementById('addApplicationBtn');
+const applicationsList = document.getElementById('applicationsList');
+
+// Check URL parameters for form display
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.get('action') === 'new') {
+    applicationForm.style.display = 'block';
+}
 
 // Auth state observer
 auth.onAuthStateChanged(user => {
@@ -35,7 +43,7 @@ auth.onAuthStateChanged(user => {
         // User is signed out
         authForms.style.display = 'grid';
         appContent.style.display = 'none';
-        applicationsList.innerHTML = '';
+        applicationsList.innerHTML = '<div class="no-applications"><p>No applications yet</p></div>';
     }
 });
 
@@ -76,6 +84,11 @@ logoutBtn.addEventListener('click', async () => {
     }
 });
 
+// Toggle application form
+addApplicationBtn.addEventListener('click', () => {
+    applicationForm.style.display = applicationForm.style.display === 'none' ? 'block' : 'none';
+});
+
 // Function to create an application card
 function createApplicationCard(application) {
     const card = document.createElement('div');
@@ -84,6 +97,7 @@ function createApplicationCard(application) {
         <h3>${application.jobTitle}</h3>
         <p>${application.companyName}</p>
         <span class="status-badge status-${application.status}">${application.status}</span>
+        <p>Deadline: ${new Date(application.deadline).toLocaleDateString()}</p>
         <button onclick="deleteApplication('${application.id}')" class="delete-btn">Delete</button>
     `;
     return card;
@@ -96,6 +110,11 @@ async function loadApplications() {
             .where('userId', '==', auth.currentUser.uid)
             .orderBy('createdAt', 'desc')
             .get();
+
+        if (snapshot.empty) {
+            applicationsList.innerHTML = '<div class="no-applications"><p>No applications yet</p></div>';
+            return;
+        }
 
         applicationsList.innerHTML = '';
         snapshot.forEach(doc => {
@@ -126,23 +145,23 @@ jobForm.addEventListener('submit', async (e) => {
     const jobTitle = document.getElementById('jobTitle').value;
     const companyName = document.getElementById('companyName').value;
     const status = document.getElementById('status').value;
+    const deadline = document.getElementById('deadline').value;
     
     try {
         await db.collection('applications').add({
             jobTitle,
             companyName,
             status,
+            deadline,
             userId: auth.currentUser.uid,
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
         
         jobForm.reset();
+        applicationForm.style.display = 'none';
         loadApplications();
     } catch (error) {
         console.error('Error adding application:', error);
         alert('Error adding application');
     }
-});
-
-// Initial render
-loadApplications(); 
+}); 
